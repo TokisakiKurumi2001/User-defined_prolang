@@ -1,0 +1,96 @@
+%YAML 1.2
+---
+# See http://www.sublimetext.com/docs/3/syntax.html
+file_extensions:
+  - csml
+scope: source.csml
+
+contexts:
+  # The prototype context is prepended to all contexts but those setting
+  # meta_include_prototype: false.
+  prototype:
+    - include: comments
+    - include: comment-blocks
+
+  main:
+    # The main context is the initial starting point of our syntax.
+    # Include other contexts from here (or specify them directly).
+    - include: keywords-normal
+    - include: types-normal
+    - include: numbers
+    - include: strings
+    - include: operators
+    - include: characters
+
+  keywords-normal:
+    # Keywords are if, else for and while.
+    # Note that blackslashes don't need to be escaped within single quoted
+    # strings in YAML. When using single quoted strings, only single quotes
+    # need to be escaped: this is done by using two single quotes next to each
+    # other.
+    - match: '\b(if|else|goto|say|hold|use|as|foreach|in|remember|match|do)\b'
+      scope: keyword.control.memsql
+
+  types-normal:
+    - match: '\b(OneOf|Typing|pop|push|Wait|Url|Image|Video|Audio|Button|Question|Shuffle|Find|Length|Fn|Text)\b'
+      scope: storage.type.memsql
+
+  numbers:
+    - match: '\b(-)?[0-9.]+\b'
+      scope: constant.numeric.memsql
+    - match: '-[0-9.]'
+      scope: constant.numeric.memsql
+
+  strings:
+    # Strings begin and end with quotes, and use backslashes as an escape
+    # character.
+    - match: '"'
+      scope: punctuation.definition.string.begin.memsql
+      push: inside_string
+
+  inside_string:
+    - meta_include_prototype: false
+    - meta_scope: string.quoted.double.memsql
+    - match: '\.'
+      scope: constant.character.escape.memsql
+    - match: '"'
+      scope: punctuation.definition.string.end.memsql
+      pop: true
+
+  operators:
+    - match: '[*+/\-=%|&<>]'
+      scope: keyword.operator.memsql
+
+  characters:
+    - match: "'"
+      scope: punctuation.definition.string.memsql
+      push: inside_chars
+
+  inside_chars:
+    - meta_include_prototype: false
+    - meta_scope: string.quoted.single.memsql
+    - match: "''"
+      scope: constant.character.escape.memsql
+    - match: "'"
+      scope: punctuation.definition.string.end.memsql
+      pop: true
+
+  comments:
+    # Comments begin with a "#" and finish at the end of the line.
+    - match: '//'
+      scope: punctuation.definition.comment.memsql
+      push:
+        # This is an anonymous context push for brevity.
+        - meta_scope: comment.line.double-slash.memsql
+        - match: $\n?
+          pop: true
+
+  comment-blocks:
+    # Comments begin with a '/*' and finish with '*/'
+    - match: '\/\*'
+      scope: punctuation.definition.comment.csml
+      push:
+        - meta_scope: comment.line.double-slash.csml
+        - match: '\*\/'
+          pop: true
+
