@@ -1,0 +1,79 @@
+%YAML 1.2
+---
+# See http://www.sublimetext.com/docs/3/syntax.html
+file_extensions:
+  - scilla
+scope: source.scilla
+
+contexts:
+  # The prototype context is prepended to all contexts but those setting
+  # meta_include_prototype: false.
+  prototype:
+    - include: comments
+
+  main:
+    # The main context is the initial starting point of our syntax.
+    # Include other contexts from here (or specify them directly).
+    - include: functions
+    - include: keywords
+    - include: numbers
+    - include: symbols
+    - include: strings
+    - include: constants
+
+  functions:
+    - match: '(?<=transition\s)(\w+)'
+      scope: entity.name.function.constructor.scilla
+
+  keywords:
+    # Keywords are if, else for and while.
+    # Note that blackslashes don't need to be escaped within single quoted
+    # strings in YAML. When using single quoted strings, only single quotes
+    # need to be escaped: this is done by using two single quotes next to each
+    # other.
+    - match: '\b(let|contains|delete|put|remove|library|import|contract|event|field|send|fun|transition|match|end|with|builtin)\b'
+      scope: keyword.operator.scilla
+
+    - match: '\b(String|Uint32|Uint64|Uint128|Uint256|Int32|Int64|Int128|Int256|ByStr20|ByStr32|ByStr64|ByStr33|Bool|Some|List|type|scilla_version)\b'
+      scope: storage.type.scilla
+
+    - match: '\b(eq|add|sub|mul|div|rem|lt|blt|in|scilla\\_version|substr|sha256hash|keccak256hash|ripemd160hash|to\\_byStr|to\\_nat|pow|to\\_uint256|to\\_uint32|to\\_uint64|to\\_uint128|to\\_int256|to\\_int32|to\\_int64|to\\_list|to\\_int128|schnorr\\_verify|concat|andb|orb|bool_to_string|negb)\b'
+      scope: variable.annotation.scilla
+
+  numbers:
+    - match: '\b(-)?[0-9.]+\b'
+      scope: constant.numeric.scilla
+
+  symbols:
+    - match: '[-|=<>:]'
+      scope: constant.other.scilla
+
+  strings:
+    # Strings begin and end with quotes, and use backslashes as an escape
+    # character.
+    - match: '"'
+      scope: punctuation.definition.string.begin.scilla
+      push: inside_string
+
+  inside_string:
+    - meta_include_prototype: false
+    - meta_scope: string.quoted.double.scilla
+    - match: '\.'
+      scope: constant.character.escape.scilla
+    - match: '"'
+      scope: punctuation.definition.string.end.scilla
+      pop: true
+
+  constants:
+    - match: '\b(Map|True|False|BNum|Option|None|Cons|Pair|Zero|Succ|Message|Nil)\b'
+      scope: entity.name.function.constructor.scilla
+
+  comments:
+    # Comments begin with a '(*' and and finish with '*)'
+    - match: '\(\*'
+      scope: punctuation.definition.comment.scilla
+      push:
+        # This is an anonymous context push for brevity.
+        - meta_scope: comment.block.scilla
+        - match: '\*\)'
+          pop: true
