@@ -1,0 +1,105 @@
+%YAML 1.2
+---
+# See http://www.sublimetext.com/docs/3/syntax.html
+file_extensions:
+  - memsql
+scope: source.memsql
+
+contexts:
+  # The prototype context is prepended to all contexts but those setting
+  # meta_include_prototype: false.
+  prototype:
+    - include: comments
+
+  main:
+    # The main context is the initial starting point of our syntax.
+    # Include other contexts from here (or specify them directly).
+    - include: functions
+    - include: keywords-normal
+    - include: keywords-capital
+    - include: types-normal
+    - include: types-capital
+    - include: fields
+    - include: numbers
+    - include: strings
+    - include: operators
+    - include: characters
+
+  functions:
+    - match: '(?<=FUNCTION\s)(?:\w+)|(?<=DATABASE\s)(?:\w+)|(?<=TABLE\s)(?:\w+)|(?<=PROCEDURE\s)(?:\w+)|(?<=EXISTS\s)(?:\w+)|(?<=function\s)(?:\w+)|(?<=database\s)(?:\w+)|(?<=procedure\s)(?:\w+)|(?<=table\s)(?:\w+)|(?<=exists\s)(?:\w+)'
+      scope: entity.name.function.constructor.memsql
+
+  keywords-normal:
+    # Keywords are if, else for and while.
+    # Note that blackslashes don't need to be escaped within single quoted
+    # strings in YAML. When using single quoted strings, only single quotes
+    # need to be escaped: this is done by using two single quotes next to each
+    # other.
+    - match: '\b(echo|if|drop|database|exists|end|not|null|table|create|or|replace|function|primary|key|shard|as|returns|length|substr|declare|begin|end|loop|for|else|then|pow|floor|rand|select|from|where|order|by|limit|over|insert|values|into|interval|in|not|return|procedure|desc|date_add|create_array|collect|using|clustered|columnstore|call|group|with|left|right|join|outer|on|within|distinct|use|partition|and)\b'
+      scope: keyword.control.memsql
+
+  keywords-capital:
+    - match: '\b(ECHO|IF|DROP|DATABASE|EXISTS|END|NOT|NULL|TABLE|CREATE|OR|REPLACE|FUNCTION|AS|PRIMARY|KEY|SHARD|AS|RETURNS|LENGTH|SUBSTR|DECLARE|BEGIN|END|LOOP|FOR|ELSE|THEN|POW|FLOOR|RAND|SELECT|FROM|WHERE|ORDER|BY|LIMIT|OVER|INSERT|VALUES|INTO|INTERVAL|IN|NOT|RETURN|PROCEDURE|DESC|DATE_ADD|CREATE_ARRAY|COLLECT|USING|CLUSTERED|COLUMNSTORE|CALL|GROUP|WITH|LEFT|RIGHT|JOIN|OUTER|ON|WITHIN|DISTINCT|USE|PARTITION|AND)\b'
+      scope: keyword.control.memsql
+
+  types-normal:
+    - match: '\b(enum|set|json|geography|geographypoint|text|bool|bit|tinyint|blob|smallint|mediumint|bigint|int|varchar|char|query|decimal|array|record|count|min|max|avg|now|scalar|variance|sum|std|date|datetime)\b'
+      scope: storage.type.memsql
+
+  types-capital:
+    - match: '\b(ENUM|SET|JSON|GEOGRAPHY|GEOGRAPHYPOINT|TEXT|BOOL|BIT|TINYINT|BLOB|SMALLINT|MEDIUMINT|BIGINT|INT|VARCHAR|CHAR|QUERY|DECIMAL|ARRAY|RECORD|COUNT|MIN|MAX|AVG|NOW|SCALAR|VARIANCE|SUM|STD|DATE|DATETIME)\b'
+      scope: variable.function.memsql
+
+  fields:
+    - match: '\b(\w+[.]\w+)\b'
+      scope: constant.language.memsql
+
+  numbers:
+    - match: '\b(-)?[0-9.]+\b'
+      scope: constant.numeric.memsql
+    - match: '-[0-9.]'
+      scope: constant.numeric.memsql
+
+  strings:
+    # Strings begin and end with quotes, and use backslashes as an escape
+    # character.
+    - match: '"'
+      scope: punctuation.definition.string.begin.memsql
+      push: inside_string
+
+  inside_string:
+    - meta_include_prototype: false
+    - meta_scope: string.quoted.double.memsql
+    - match: '\.'
+      scope: constant.character.escape.memsql
+    - match: '"'
+      scope: punctuation.definition.string.end.memsql
+      pop: true
+
+  operators:
+    - match: '[*+/\-=%|&<>]'
+      scope: keyword.operator.memsql
+
+  characters:
+    - match: "'"
+      scope: punctuation.definition.string.memsql
+      push: inside_chars
+
+  inside_chars:
+    - meta_include_prototype: false
+    - meta_scope: string.quoted.single.memsql
+    - match: "''"
+      scope: constant.character.escape.memsql
+    - match: "'"
+      scope: punctuation.definition.string.end.memsql
+      pop: true
+
+  comments:
+    # Comments begin with a '--' or '##' and finish at the end of the line.
+    - match: '--|##'
+      scope: punctuation.definition.comment.memsql
+      push:
+        # This is an anonymous context push for brevity.
+        - meta_scope: comment.line.double-slash.memsql
+        - match: $\n?
+          pop: true
