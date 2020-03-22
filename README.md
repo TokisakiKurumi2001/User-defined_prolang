@@ -24,3 +24,13 @@ https://github.com/TokisakiKurumi2001/User-defined_prolang/blob/master/cql.subli
 #### Reference:
 
 https://github.com/lawrencekgrant/vscode-cql/blob/master/syntaxes/cql.tmLanguage
+
+### Cadence - Flow
+
+https://github.com/TokisakiKurumi2001/User-defined_prolang/blob/master/cadence.sublime-syntax
+
+#### Reference:
+
+Since Cadence inherits the syntax from Swift, I think using Swift syntax highlight and add some keywords to make the syntax highlight for Cadence
+
+https://github.com/GregoryBL/SwiftSyntax/blob/master/Swift.sublime-syntax
