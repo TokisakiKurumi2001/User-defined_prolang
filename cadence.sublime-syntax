@@ -1,0 +1,677 @@
+%YAML 1.2
+---
+name: Cadence
+file_extensions:
+  - cdc
+scope: source.cdc
+
+## Order largely from babel-sublime
+
+variables:
+  typeIdent: '[A-Z_][a-zA-Z0-9_]*'
+  ident: '[a-zA-Z_][a-zA-Z0-9_]*'
+
+contexts:
+  main:
+    - include: literal-for
+    - include: literal-switch
+    - include: expression
+    - include: literal-punctuation
+
+  prototype:
+    - include: comments
+
+  expression:
+    - include: generic
+    - include: support-contract
+
+    - include: literal-function
+    - include: literal-contract
+    - include: literal-struct
+    - include: literal-protocol
+    - include: literal-enum
+
+    - include: literal-keywords
+
+    - include: literal-number
+    - include: literal-string
+    - include: literal-language-constant
+    - include: literal-language-variable
+
+    - include: literal-method-call
+    - include: literal-function-call
+    - include: property-access
+
+    - include: brackets
+
+    - include: literal-operators
+    - include: literal-assignment
+    - include: literal-variable
+
+  comments:
+    - match: //+
+      scope: punctuation.definition.comment
+      push: line-comment
+    - match: /\*
+      scope: punctuation.definition.comment.begin
+      push: block-comment
+
+  line-comment:
+    - meta_scope: comment.line
+    - match: ' *(MARK:)(.*)'
+      captures:
+        1: punctuation.definition.comment
+        2: meta.toc-list
+      pop: true
+    - match: .*
+      pop: true
+
+  block-comment:
+    - meta_scope: comment.block
+    - match: \*/
+      scope: punctuation.definition.comment.end
+      pop: true
+
+  brackets:
+    - include: round-brackets
+    - include: square-brackets
+    - include: curly-brackets
+
+  round-brackets:
+    - match: \(
+      scope: punctuation.section.parens.begin.cdc
+      push:
+        - meta_scope: meta.parens.cdc
+        - match: \)
+          scope: punctuation.section.parens.end.cdc
+          pop: true
+        - include: expression
+
+  square-brackets:
+    - match: \[
+      scope: punctuation.section.brackets.begin.cdc
+      push:
+        - meta_scope: meta.brackets.cdc
+        - match: \]
+          scope: punctuation.section.brackets.end.cdc
+          pop: true
+        - include: expression
+
+  curly-brackets:
+    - match: '{'
+      scope: punctuation.section.braces.begin.cdc
+      push:
+        - meta_scope: meta.braces.cdc
+        - match: '}'
+          scope: punctuation.section.braces.end.cdc
+          pop: true
+        - include: expression
+
+  ##### Literals #####
+
+  literal-number:
+    - match: \b0b[01][01_]*\b
+      scope: constant.numeric.binary.cdc
+    - match: \b0o[0-7][0-7_]*\b
+      scope: constant.numeric.octal.cdc
+    - match: \b0x[a-fA-F0-9][a-fA-F0-9_]*\b
+      scope: constant.numeric.hex.cdc
+    - match: '(?:\b[0-9][0-9_]*)?\.[0-9_]+\b'
+      scope: constant.numeric.float.cdc
+    - match: '\b[0-9][0-9_]*\b'
+      scope: constant.numeric.integer.cdc
+
+  literal-language-constant:
+    - match: \btrue\b
+      scope: constant.language.boolean.true.cdc
+    - match: \bfalse\b
+      scope: constant.language.boolean.false.cdc
+    - match: \bnil\b
+      scope: constant.language.nil.cdc
+
+  literal-string:
+    - match: '"'
+      scope: punctuation.definition.string.begin.cdc
+      push: string-double
+
+  string-double:
+    - meta_include_prototype: false
+    - meta_scope: string.quoted.double.cdc
+    - match: \\\(
+      scope: punctuation.section.embedded.begin.cdc
+      set: embedded
+    - match: '"'
+      scope: punctuation.definition.string.end.cdc
+      pop: true
+    - include: string-content
+
+  embedded:
+    - match: \)
+      scope: punctuation.section.embedded.end.cdc
+      set: string-double
+    - include: main
+
+  string-content:
+    - match: \\n
+      scope: constant.character.escape.newline.cdc
+    - match: \\[0tr"'\\]
+      scope: constant.character.escape.cdc
+
+  literal-language-variable:
+    - match: \bsuper\b
+      scope: variable.language.super.cdc
+    - match: \bself\b
+      scope: variable.language.self.cdc
+
+  literal-operators:
+    - match: '[-+*/%]|&\*|&/|&%|&\+|&-'
+      scope: keyword.operator.arithmetic.cdc
+    - match: ==|!=|===|!==|<=|>=|<|>
+      scope: keyword.operator.logical.comparison.cdc
+    - match: '\|\||&&'
+      scope: keyword.operator.logical.cdc
+    - match: '[!~](?=(?:[a-zA-Z]|{{ident}}))'
+      scope: keyword.operator.logical.cdc
+    - match: '<<|>>|&|/|^'
+      scope: keyword.operator.bitwise.cdc
+    - match: '~='
+      scope: keyword.operator.match.cdc
+    - match: '\?\?'
+      scope: keyword.operator.nilcoalescing.cdc
+    - match: '\s+(\?)\s+(?=.*:)'
+      captures:
+        1: keyword.control.conditional.ternary.cdc
+      push:
+        - match: ':'
+          scope: keyword.control.conditional.ternary.cdc
+          pop: true
+        - include: expression
+
+  ##### KEYWORDS #####
+
+  literal-for:
+    - match: \bfor\b
+      scope: keyword.control.loop.cdc
+
+  literal-switch:
+    - match: (?<!\.)\bswitch\b
+      scope: keyword.control.switch.cdc
+      push:
+        - meta_scope: meta.switch.cdc
+        - match: \}
+          scope: punctuation.section.braces.end.cdc
+          pop: true
+        - match: \{
+          scope: punctuation.section.braces.begin.cdc
+          push:
+            - match: (?=})
+              pop: true
+            - match: (?<!\.)\b(case|default)\b
+              scope: keyword.control.switch.cdc
+              push:
+                - match: ':'
+                  scope: punctuation.separator.cdc
+                  pop: true
+                - match: \,
+                  scope: punctuation.separator.cdc
+            - include: main
+        - include: main
+
+  literal-keywords:
+    - match: (?<!\.)\b(?>if|else)\b
+      scope: keyword.control.conditional.cdc
+    - match: (?<!\.)\b(?>continue|break|fallthrough)\b
+      scope: keyword.control.transfer.cdc
+    - match: (?<!\.)\breturn\b
+      scope: keyword.control.flow.cdc
+    - match: (?<!\.)\b(?>while|repeat)\b
+      scope: keyword.control.loop.cdc
+    - match: \b(?>do|catch|throw|rethrow)\b
+      scope: keyword.control.exception.cdc
+    - match: \b(try)(\?|!)?(?=\s)
+      captures:
+        1: keyword.control.exception.cdc
+        2: keyword.operator.optional.cdc
+    - match: \bimport\b
+      scope: keyword.control.import
+    - match: \b(?:as(?:(\?|!)?)|is)(?=\s)
+      scope: keyword.operator.cast.cdc
+    - match: \bwhere\b
+      scope: keyword.control.where.cdc
+    - match: \bin\b
+      scope: keyword.control.in.cdc
+    - match: \bguard\b
+      scope: keyword.control.guard.cdc
+    - match: \bresource\b
+      scope: keyword.control.resource.cdc
+    - match: \bdestroy\b
+      scope: keyword.control.destroy.cdc
+    - match: \bcreate\b
+      scope: keyword.control.create.cdc
+    - match: \bfun\b
+      scope: keyword.control.function.cdc
+    - match: \btransaction\b
+      scope: keyword.control.transaction.cdc
+    - match: \bexecute\b
+      scope: keyword.control.execute.cdc
+    - match: \binterface\b
+      scope: keyword.control.interface.cdc
+    - match: \b(post|pre)\b
+      scope: storage.type.interface.cdc
+    - match: \bevent\b
+      scope: keyword.control.event.cdc
+    - match: \bemit\b
+      scope: keyword.control.emit.cdc
+    - include: declaration-attributes
+    - include: declaration-modifiers
+    - include: type-attributes
+    - include: access-attributes
+    - include: function-attributes
+
+  declaration-attributes:
+    - match: (@)(?>available|discardableResult|GKInspectable|objc|nonobjc|NSApplicationMain|NSCopying|NSManaged|testable|UIApplicationMain|IBAction|IBOutlet|IBDesignable|IBInspectable)
+      scope: keyword.other.cdc
+      captures:
+        1: punctuation.definition.keyword.cdc
+
+  declaration-modifiers:
+    - match: (?>dynamic|final|lazy|optional|required|weak)
+      scope: storage.modifier.cdc
+
+  type-attributes:
+    - match: (?>autoclosure|convention|escaping)
+      scope: keyword.other.cdc
+
+  access-attributes:
+    - match: (?>open|public|internal|fileprivate|private|pub)
+      scope: storage.modifier.cdc
+
+  function-attributes:
+    - match: override|convenience
+      scope: keyword.other.cdc
+
+  ##### CLASS DECLARATIONS #####
+
+  literal-contract:
+    # e.g. contract MyClass : OtherClass {  }
+    - match: (?<!\.)(?=\bcontract|extension\b)
+      push: contract_def
+
+  contract_def:
+    - meta_scope: meta.contract.cdc
+    - match: \bcontract|extension\b
+      scope: storage.type.contract.cdc
+      push: [contract_body, contract_inherits, contract_name]
+    - match: (?<=})
+      pop: true
+
+  contract_name:
+    - match: (?=\s*:|{)
+      pop: true
+    - match: ({{typeIdent}})
+      scope: entity.name.contract.cdc
+      set:
+        - include: generic
+        - match: (?=\s*(?>:|>|{))
+          pop: true
+
+  contract_inherits:
+    - match: ':'
+      scope: punctuation.separator.cdc
+      set:
+        - include: generic
+        - match: (?={)
+          pop: true
+        - match: ({{typeIdent}})
+          scope: entity.other.inherited-contract.cdc
+        - match: ","
+          scope: punctuation.separator.cdc
+    - match: (?={)
+      pop: true
+
+  contract_body:
+    - match: '{'
+      scope: punctuation.definition.contract.body.begin.cdc
+      set:
+        - match: '}'
+          scope: punctuation.definition.contract.body.end.cdc
+          pop: true
+        - include: main
+
+  ##### GENERIC DECLARATION #####
+  ## This could use work
+  generic:
+    - match: '(<)\s*(?={{typeIdent}}\s*(?:(?:[:,<]\s*{{typeIdent}})*\s*>))'
+      captures:
+        1: punctuation.definition.generic.begin.cdc
+      push:
+        - include: generic
+        - meta_scope: meta.generic.cdc
+        - match: ',|:'
+          scope: punctuation.separator.cdc
+        - match: ({{typeIdent}})
+          scope: variable.other.generic.cdc
+        - match: '>'
+          scope: punctuation.definition.generic.end.cdc
+          pop: true
+
+  ##### BUILTIN TYPES #####
+
+  ## Many more exist, these are just (by my estimation) the common ones. See: http://stackoverflow.com/questions/25754791/full-list-of-fundamental-swift-types
+  support-contract:
+    - match: \b(?>Character|String|Int|Int8|Int16|Int32|Int64|UInt|UInt8|UInt16|UInt32|UInt64|Float|Float80|Double|Bool|AnyObject|Array|CollectionType|Comparable|Dictionary|Equatable|Hashable|MutableCollectionType|MutableSliceable|Printable|Range|RawByte|RawRepresentable|SequenceType|Sliceable|Slice|Streamable|Unmanaged|UnsafeMutablePointer|UnsafePointer)
+      scope: support.contract.cdc
+
+  ##### PROTOCOL DECLARATIONS #####
+
+  literal-protocol:
+    # e.g. protocol MyProtocol {  }
+    - match: (?<!\.)(?=\bprotocol\b)
+      push: protocol_def
+
+  protocol_def:
+    - meta_scope: meta.protocol.cdc
+    - match: \bprotocol\b
+      scope: storage.type.protocol.cdc
+      push: [protocol_body, protocol_inherits, protocol_name]
+    - match: (?<=})
+      pop: true
+
+  protocol_name:
+    - match: (?=\s*:|{)
+      pop: true
+    - match: ({{typeIdent}})
+      scope: entity.name.contract.cdc
+      set:
+        - include: generic
+        - match: (?=\s*(?>:|>|{))
+          pop: true
+
+  protocol_inherits:
+    - match: ':'
+      scope: punctuation.separator.cdc
+      set:
+        - match: (?={)
+          pop: true
+        - match: contract
+          scope: keyword.other.cdc
+        - match: ({{typeIdent}})
+          scope: entity.other.inherited-contract.cdc
+        - match: ","
+          scope: punctuation.separator.cdc
+    - match: (?={)
+      pop: true
+
+  protocol_body:
+    - match: '{'
+      scope: punctuation.definition.protocol.body.begin.cdc
+      set:
+        - match: '}'
+          scope: punctuation.definition.protocol.body.end.cdc
+          pop: true
+        - include: protocol-properties
+        - include: protocol-method-definition
+        - include: protocol-method-storage
+        - include: brackets
+
+  literal-struct:
+    # e.g. struct MyStruct {  }
+    - match: (?<!\.)(?=\bstruct\b)
+      push: struct_def
+
+  struct_def:
+    - meta_scope: meta.struct.cdc
+    - match: \bstruct\b
+      scope: storage.type.struct.cdc
+      push: [struct_body, struct_inherits, struct_name]
+    - match: (?<=})
+      pop: true
+
+  struct_name:
+    - match: (?=\s*:|{)
+      pop: true
+    - match: ({{typeIdent}})
+      scope: entity.name.contract.cdc
+      set:
+        - include: generic
+        - match: (?=\s*(?>:|>|{))
+          pop: true
+
+  struct_inherits:
+    - match: ':'
+      scope: punctuation.separator.cdc
+      set:
+        - match: (?={)
+          pop: true
+        - match: ({{typeIdent}})
+          scope: entity.other.inherited-contract.cdc
+        - match: ","
+          scope: punctuation.separator.cdc
+    - match: (?={)
+      pop: true
+
+  struct_body:
+    - match: '{'
+      scope: punctuation.definition.struct.body.begin.cdc
+      set:
+        - match: '}'
+          scope: punctuation.definition.struct.body.end.cdc
+          pop: true
+        - include: struct-properties
+        - include: struct-method-definition
+        - include: struct-method-storage
+        - include: brackets
+
+  literal-enum:
+    # e.g. enum MyEnum {  }
+    - match: (?<!\.)(?=\benum\b)
+      push: enum_def
+
+  enum_def:
+    - meta_scope: meta.enum.cdc
+    - match: \benum\b
+      scope: storage.type.enum.cdc
+      push: [enum_body, enum_inherits, enum_name]
+    - match: (?<=})
+      pop: true
+
+  enum_name:
+    - match: (?=\s*:|{)
+      pop: true
+    - match: ({{typeIdent}})
+      scope: entity.name.contract.cdc
+      set:
+        - include: generic
+        - match: (?=\s*(?>:|>|{))
+          pop: true
+
+  enum_inherits:
+    - match: ':'
+      scope: punctuation.separator.cdc
+      set:
+        - match: (?={)
+          pop: true
+        - match: ({{typeIdent}})
+          scope: entity.other.inherited-contract.cdc
+        - match: ","
+          scope: punctuation.separator.cdc
+    - match: (?={)
+      pop: true
+
+  enum_body:
+    - match: '{'
+      scope: punctuation.definition.enum.body.begin.cdc
+      set:
+        - match: '}'
+          scope: punctuation.definition.enum.body.end.cdc
+          pop: true
+        - include: enum-cases
+
+  ##### FUNCTION DECLARATION #####
+
+  literal-funtion:
+    - match: (?<!\.)(?=\bfun\b)
+      push: func-def
+
+  func-def:
+    - meta_scope: meta.function.cdc
+    - match: \bfun\b
+      scope: storage.type.function.cdc
+      push: func-name
+    - match: (?=:)
+      set: return-type
+    - match: \(
+      scope: punctuation.section.parens.begin.cdc
+      set: parameter-list
+    - match: \)
+      scope: punctuation.section.parens.end.cdc
+    - match: \{
+      scope: punctuation.section.braces.begin.cdc
+      push: function-body
+    - match: (?<=})
+      pop: true
+
+  func-name:
+    - match: ({{ident}})
+      scope: entity.name.function.cdc
+      pop: true
+
+  parameter-list:
+    - meta_content_scope: meta.function.parameters.cdc
+    - include: parameter
+    - match: (?=\))
+      set: func-def
+    - match: (?=\{)
+      set: func-def
+
+  parameter:
+    - match: _
+      scope: entity.name.function.cdc
+    - include: type
+    - match: '({{ident}})\s*(\:)'
+      captures:
+        1: variable.parameter.cdc
+        2: punctuation.separator.cdc
+    - match: '({{ident}}|_)\b'
+      scope: entity.name.function.cdc
+    - match: ','
+      scope: punctuation.separator.cdc
+
+  return-type:
+    - meta_content_scope: meta.function.return-type
+    - match: ':'
+      scope: keyword.operator.return.cdc
+    - include: type
+    - match: (?={)
+      set: func-def
+
+  function-body:
+    - match: \}
+      scope: punctuation.section.braces.end.cdc
+      pop: true
+    - include: main
+
+  type:
+    - match: ({{typeIdent}})([?!]?)
+      captures:
+        1: entity.name.type.cdc
+        2: keyword.operator.optional.cdc
+    - match: (\[)({{typeIdent}})([?!]?)(\])([?!]?)
+      captures:
+        1: punctuation.definition.array.begin.cdc
+        2: entity.name.type.cdc
+        3: keyword.operator.optional.cdc
+        4: punctuation.definition.array.end.cdc
+        5: keyword.operator.optional.cdc
+    - match: (\[)({{typeIdent}})([?!]?)(\:)(\])([?!]?)
+      captures:
+        1: punctuation.definition.array.begin.cdc
+        2: entity.name.type.cdc
+        3: keyword.operator.optional.cdc
+        4: punctuation.definition.array.end.cdc
+        5: keyword.operator.optional.cdc\
+    - include: generic
+
+  property-access:
+    - match: (\.)({{ident}})([?!]?)
+      captures:
+        1: punctuation.accessor.cdc
+        2: variable.other.member.cdc
+        3: keyword.operator.optional.cdc
+
+  literal-variable:
+    - match: \b({{typeIdent}})([?!]?)
+      captures:
+        1: entity.name.contract.cdc
+        2: keyword.operator.optional.cdc
+    - match: \b({{ident}})([?!]?)
+      captures:
+        1: variable.other.cdc
+        2: keyword.operator.optional.cdc
+    - match: '='
+      scope: keyword.operator.assignment.cdc
+    - match: '<-'
+      scope: keyword.operator.assignment.cdc
+
+  literal-function-call:
+    - match: ({{typeIdent}})(\()
+      scope: meta.function-call.cdc
+      captures:
+        1: entity.name.contract.cdc
+        2: punctuation.section.parens.begin.cdc
+      push: call-parameters
+    - match: (\.)?({{ident}})(\()
+      scope: meta.function-call.cdc
+      captures:
+        1: punctuation.accessor.cdc
+        2: variable.function.cdc
+        3: punctuation.section.parens.begin.cdc
+      push: call-parameters
+    - match: \)
+      scope: punctuation.section.parens.end.cdc meta.function-call.cdc
+
+  call-parameters:
+    - match: '({{ident}})\s*\:'
+      scope: variable.function.cdc
+    - match: (?=\))
+      pop: true
+    - include: expression
+
+  literal-assignment:
+    - match: \blet\b
+      scope: storage.type.cdc
+      push: assign-static
+    - match: \bvar\b
+      scope: storage.type.cdc
+      push: assign-dynamic
+
+  assign-static:
+    - include: type
+    - match: \b{{ident}}\b
+      scope: variable.other.constant.cdc
+    - match: ':'
+      scope: punctuation.separator.cdc
+    - match: '='
+      scope: keyword.operator.assignment.cdc
+      pop: true
+    - match: '<-'
+      scope: keyword.operator.assignment.cdc
+      pop: true
+    - match: '$'
+      pop: true
+    - match: (?={)
+      pop: true
+
+  assign-dynamic:
+    - include: type
+    - match: \b{{ident}}\b
+      scope: variable.other.readwrite.cdc
+    - match: ':'
+      scope: punctuation.separator.cdc
+    - match: '='
+      scope: keyword.operator.assignment.cdc
+      pop: true
+    - match: '$'
+      pop: true
+    - match: (?={)
+      pop: true
